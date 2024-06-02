@@ -1,0 +1,17 @@
+version: '3.10'
+
+services:
+  auth-api-service:
+    image: 'auth-service-img'
+    build:
+      context: ./oauth2
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./oauth2:/code
+    networks:
+      - auth-network
+
+networks:
+  auth-network:
