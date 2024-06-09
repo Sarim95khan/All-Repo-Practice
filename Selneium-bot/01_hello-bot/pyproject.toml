@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "01-hello-bot"
+version = "0.1.0"
+description = ""
+authors = ["Sarim95khan <sarim95khan@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+selenium = "^4.21.0"
+requests = "^2.32.3"
+pillow = "^10.3.0"
+pytesseract = "^0.3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

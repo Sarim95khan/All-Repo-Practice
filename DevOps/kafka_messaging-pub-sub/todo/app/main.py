@@ -8,6 +8,7 @@ from typing import AsyncGenerator
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 import asyncio
 import json
+from app import todo_pb2
 
 class Todo(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -49,9 +50,12 @@ async def consume_messages(topic, bootstrap_servers):
     try:
         # Continuously listen for messages.
         async for message in consumer:
-            print(f"Received message: {message.value.decode()} on topic {message.topic}")
+            print(f"\n\n Consumer Raw message Vaue: {message.value}")
             # Here you can add code to process each message.
             # Example: parse the message, store it in a database, etc.
+            new_todo = todo_pb2.Todo()
+            new_todo.ParseFromString(message.value)
+            print(f"\n\n Consumer Deserialized data: {new_todo}")
     finally:
         # Ensure to close the consumer when done.
         await consumer.stop()
@@ -65,7 +69,7 @@ async def consume_messages(topic, bootstrap_servers):
 async def lifespan(app: FastAPI)-> AsyncGenerator[None, None]:
     print("Creating tables..")
     # loop.run_until_complete(consume_messages('todos', 'broker:19092'))
-    task = asyncio.create_task(consume_messages('todos_sarim', 'broker:19092'))
+    task = asyncio.create_task(consume_messages('todo', 'broker:19092'))
     create_db_and_tables()
     yield
 
@@ -99,11 +103,18 @@ async def get_kafka_producer():
 
 @app.post("/todos/", response_model=Todo)
 async def create_todo(todo: Todo, session: Annotated[Session, Depends(get_session)], producer: Annotated[AIOKafkaProducer, Depends(get_kafka_producer)])->Todo:
-        todo_dict = {field: getattr(todo, field) for field in todo.dict()}
-        todo_json = json.dumps(todo_dict).encode("utf-8")
-        print("todoJSON:", todo_json)
+        # todo_dict = {field: getattr(todo, field) for field in todo.dict()}
+        # todo_json = json.dumps(todo_dict).encode("utf-8")
+        # print("todoJSON:", todo_json)
+
+        todo_protbuf = todo_pb2.Todo(id=todo.id, content=todo.content)
+        print(f"Todo Protobuf: {todo_protbuf}")
+
+    # Serialize the message to a byte string
+        serialized_todo = todo_protbuf.SerializeToString()
+        print(f"Serialized data: {serialized_todo}")
         # Produce message
-        await producer.send_and_wait("todos_sarim", todo_json)
+        await producer.send_and_wait("todo", serialized_todo)
         # session.add(todo)
         # session.commit()
         # session.refresh(todo)
